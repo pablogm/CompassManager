@@ -99,10 +99,10 @@ public class CompassManager implements SensorEventListener
      */
     public void register()
     {
-        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_GAME);
-        mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_GAME);
-        mSensorManager.registerListener(this, mRotation, SensorManager.SENSOR_DELAY_GAME);
-        mSensorManager.registerListener(this, mOrientationSensor, SensorManager.SENSOR_DELAY_GAME);
+        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+        mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_FASTEST);
+        mSensorManager.registerListener(this, mRotation, SensorManager.SENSOR_DELAY_FASTEST);
+        mSensorManager.registerListener(this, mOrientationSensor, SensorManager.SENSOR_DELAY_FASTEST);
 
         if (mOrientationEventListener.canDetectOrientation())
         {
@@ -132,9 +132,13 @@ public class CompassManager implements SensorEventListener
     {
         if( mRotation == null )
         {
-            if (event.sensor == mOrientationSensor)
+            if ( event.sensor == mOrientationSensor )
             {
-                onOrientationSensorUpdate(event);
+                onOrientationSensorUpdate( event );
+            }
+            else if (event.sensor == mMagnetometer || event.sensor == mAccelerometer)
+            {
+                onAccelerometerMagnetometerUpdate( event );
             }
         }
         else
@@ -166,7 +170,7 @@ public class CompassManager implements SensorEventListener
     private void onOrientationSensorUpdate(SensorEvent event)
     {
         /// Filtering
-        float degree            = lowPassFilter(event.values[0], -mCurrentDegree);
+        float degree            = lowPassFilter(event.values.clone()[0], -mCurrentDegree);
 
         /* CALLBACK */
         this.callback.onSensorChanged(mCurrentDegree, degree);
@@ -183,12 +187,12 @@ public class CompassManager implements SensorEventListener
     {
         if (event.sensor == mAccelerometer)
         {
-            mLastAccelerometer = event.values;
+            mLastAccelerometer = event.values.clone();
             mLastAccelerometerSet = true;
         }
         else if (event.sensor == mMagnetometer)
         {
-            mLastMagnetometer = event.values;
+            mLastMagnetometer = event.values.clone();
             mLastMagnetometerSet = true;
         }
         else
@@ -231,7 +235,7 @@ public class CompassManager implements SensorEventListener
      */
     public void onRotationVectorUpdate(SensorEvent event)
     {
-        SensorManager.getRotationMatrixFromVector(rotMat, event.values);
+        SensorManager.getRotationMatrixFromVector(rotMat, event.values.clone());
 
         // Get the inclination ( i.e. the degree of tilt by the device independent of orientation (portrait or landscape) ).
         // If less than 25 or more than 155 degrees the device is considered lying flat
