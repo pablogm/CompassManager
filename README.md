@@ -1,2 +1,2 @@
 # CompassManager
-Android Compass working on all device orientations
+A Compass API for Android.
