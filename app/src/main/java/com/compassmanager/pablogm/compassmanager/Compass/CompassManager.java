@@ -131,12 +131,12 @@ public class CompassManager implements SensorEventListener
     public void onSensorChanged(SensorEvent event)
     {
         if( mRotation == null )
-        {
+        {   /*
             if ( event.sensor == mOrientationSensor )
             {
                 onOrientationSensorUpdate( event );
             }
-            else if (event.sensor == mMagnetometer || event.sensor == mAccelerometer)
+            else */if (event.sensor == mMagnetometer || event.sensor == mAccelerometer)
             {
                 onAccelerometerMagnetometerUpdate( event );
             }
@@ -180,7 +180,6 @@ public class CompassManager implements SensorEventListener
 
     /**
      * Update rotation on sensor update
-     * FIXME: Does not work when the device is flat
      * @param event Sensor event
      */
     private void onAccelerometerMagnetometerUpdate(SensorEvent event)
@@ -208,11 +207,15 @@ public class CompassManager implements SensorEventListener
 
             if( success )
             {
+                remapCoordinateSystem(mR);
+
                 SensorManager.getOrientation(mR, mOrientation);
 
-                float azimuthInRadians = mOrientation[0]; // orientation contains: azimut, pitch and roll
+                float azimuthInRadians  = mOrientation[0]; // orientation contains: azimut, pitch and roll
 
                 float azimuthInDegress  = (float)(Math.toDegrees(azimuthInRadians) + THREE_SIXTY_IN_DEGREES) % THREE_SIXTY_IN_DEGREES;
+
+                azimuthInDegress        = applyOrientationCorrection( azimuthInDegress );
 
                 /// Filtering
                 float degree            = lowPassFilter(azimuthInDegress, -mCurrentDegree);
@@ -237,19 +240,7 @@ public class CompassManager implements SensorEventListener
     {
         SensorManager.getRotationMatrixFromVector(rotMat, event.values.clone());
 
-        // Get the inclination ( i.e. the degree of tilt by the device independent of orientation (portrait or landscape) ).
-        // If less than 25 or more than 155 degrees the device is considered lying flat
-        //
-        float inclination = (float) Math.acos(rotMat[8]);
-
-        if (inclination < TWENTY_FIVE_DEGREE_IN_RADIAN || inclination > ONE_FIFTY_FIVE_DEGREE_IN_RADIAN)
-        {
-            SensorManager.remapCoordinateSystem(rotMat, SensorManager.AXIS_X, SensorManager.AXIS_Y, rotMat);
-        }
-        else
-        {
-            SensorManager.remapCoordinateSystem(rotMat, SensorManager.AXIS_X, SensorManager.AXIS_Z, rotMat);
-        }
+        remapCoordinateSystem(rotMat);
 
         SensorManager.getOrientation(rotMat, mOrientation);
 
@@ -293,6 +284,23 @@ public class CompassManager implements SensorEventListener
         }
 
         return val;
+    }
+
+    private void remapCoordinateSystem(float[] m)
+    {
+        // Get the inclination ( i.e. the degree of tilt by the device independent of orientation (portrait or landscape) ).
+        // If less than 25 or more than 155 degrees the device is considered lying flat
+        //
+        float inclination = (float) Math.acos(m[8]);
+
+        if (inclination < TWENTY_FIVE_DEGREE_IN_RADIAN || inclination > ONE_FIFTY_FIVE_DEGREE_IN_RADIAN)
+        {
+            SensorManager.remapCoordinateSystem(m, SensorManager.AXIS_X, SensorManager.AXIS_Y, m);
+        }
+        else
+        {
+            SensorManager.remapCoordinateSystem(m, SensorManager.AXIS_X, SensorManager.AXIS_Z, m);
+        }
     }
 
     /**
